@@ -1,26 +1,27 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
+    "lib": ["dom", "dom.iterable", "esnext"],       // Suporta recursos DOM e ESNext
+    "allowJs": true,                                // Permite usar arquivos JS junto com TS
+    "skipLibCheck": true,                           // Ignora verificação de tipos de bibliotecas
+    "strict": true,                                 // Ativa verificações estritas de tipo
+    "noEmit": false,                                // Deixe como false se precisar de saída JS
+    "esModuleInterop": true,                        // Compatibilidade de interop entre ES Modules e CommonJS
+    "module": "esnext",                             // Usa ESNext como sistema de módulos
+    "moduleResolution": "node",                     // Usa resolução de módulos estilo Node.js
+    "resolveJsonModule": true,                      // Permite importar módulos JSON
+    "isolatedModules": true,                        // Suporte para módulos isolados
+    "jsx": "preserve",                              // Mantém o JSX como está
+    "incremental": true,                            // Gera compilações incrementais para performance
     "plugins": [
       {
-        "name": "next"
+        "name": "next"                              // Plugin para suporte ao Next.js
       }
     ],
     "paths": {
       "@/*": ["./*"]
+
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],  // Inclui arquivos TS e TSX
+  "exclude": ["node_modules"]                        // Exclui node_modules da verificação
 }

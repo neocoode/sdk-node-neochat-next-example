@@ -1,101 +1,107 @@
-import Image from "next/image";
+"use client"; // Marca o componente como Client Component
 
-export default function Home() {
+import { useState, useRef } from "react";
+import { WebClient, EEventType } from "@neocoode/sdk-neochat"; // Certifique-se de que o pacote está configurado corretamente
+import WebSocketStatus from "@/app/components/WebSocketStatus";
+import MessageList from "@/app/components/MessageList";
+import ChatInput from "@/app/components/ChatInput";
+
+const HomeChat = () => {
+  const [messages, setMessages] = useState<{ messageId: string; answer: string; type: "sent" | "received" }[]>([]);
+  const [status, setStatus] = useState<string>("Conectando...");
+  const [message, setMessage] = useState<string>(""); // Estado para a mensagem a ser enviada
+  const [chatId, setChatId] = useState<string | null>(null); // Estado para armazenar o chatId
+  const clientsRef = useRef<WebClient[]>([]); // Armazena múltiplas instâncias de WebClient
+
+  const onMessageReceived = {
+    onSuccess: (data: any, newChatId?: string) => {
+      try {
+        // Se o chatId vier na mensagem, atualiza o estado
+        if (newChatId) {
+          setChatId(newChatId);
+        }
+
+        // Verifica se a estrutura do dado recebido é correta e contém `messageId` e `answer`
+        if (typeof data === "string") {
+          const parsedData = JSON.parse(data);
+
+          if (parsedData && typeof parsedData === "object" && "messageId" in parsedData && "answer" in parsedData) {
+            setMessages((prevMessages) => [
+              ...prevMessages,
+              { messageId: parsedData.messageId, answer: parsedData.answer, type: "received" },
+            ]);
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao processar JSON:", error);
+      }
+    },
+    onError: (error: string) => {
+      console.error("Erro ao processar a mensagem:", error);
+    },
+  };
+
+  const onEvent = (type: EEventType, data: string) => {
+    switch (type) {
+      case EEventType.CONNECTION:
+        setStatus(`[Conexão]: ${data}`);
+        break;
+      case EEventType.CLOSE:
+        setStatus(`[Fechamento]: ${data}`);
+        break;
+      case EEventType.ERROR:
+        setStatus(`[Erro]: ${data}`);
+        break;
+      default:
+        console.log(`[Desconhecido]: ${data}`);
+    }
+  };
+
+  const sendMessage = () => {
+    try {
+      const wsOptions = {
+        wsUrl: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost", // Vindo da variável de ambiente
+        wsPort: process.env.NEXT_PUBLIC_WS_PORT || "3525", // Porta do WebSocket
+        maxReconnectAttempts: Number(process.env.NEXT_PUBLIC_WS_MAX_RECONNECT_ATTEMPTS) || 5,
+        reconnectInterval: Number(process.env.NEXT_PUBLIC_WS_RECONNECT_INTERVAL) || 3000,
+        timeoutDuration: 30000, // Um valor padrão ou pode ser vindo das envs
+        debug: process.env.NEXT_PUBLIC_DEBUG === "true", // Debug habilitado via variável
+      };
+
+      // Cria uma nova instância de WebClient com o chatId (se houver) e a adiciona ao array
+      const newClient = new WebClient(onMessageReceived, wsOptions, onEvent, chatId || undefined);
+      clientsRef.current.push(newClient);
+
+      if (message.trim()) {
+        newClient.sendMessage(message);
+
+        // Adiciona a mensagem enviada ao estado
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { messageId: `${Date.now()}`, answer: message, type: "sent" }, // Adiciona a mensagem enviada pelo usuário
+        ]);
+        setMessage(""); // Limpa o campo de mensagem após o envio
+      }
+    } catch (error) {
+      console.error("Erro ao inicializar WebClient:", error);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Se o usuário pressionar Cmd/Ctrl + Enter, envia a mensagem
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+    <div className="w-full min-h-screen flex flex-col bg-gray-900 text-white" style={{ padding: "0 50px" }}>
+      <WebSocketStatus status={status} />
+      <MessageList messages={messages} />
+      <ChatInput message={message} setMessage={setMessage} sendMessage={sendMessage} handleKeyPress={handleKeyPress} />
     </div>
   );
-}
+};
+
+export default HomeChat;
