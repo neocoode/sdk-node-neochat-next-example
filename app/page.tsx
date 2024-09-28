@@ -1,10 +1,11 @@
 "use client"; // Marca o componente como Client Component
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { WebClient, EEventType } from "@neocoode/sdk-neochat"; // Certifique-se de que o pacote está configurado corretamente
 import WebSocketStatus from "@/app/components/WebSocketStatus";
 import MessageList from "@/app/components/MessageList";
 import ChatInput from "@/app/components/ChatInput";
+import ChatStatus from "@/app/components/ChatStatus"; // Importar o novo componente ChatStatus
 
 const HomeChat = () => {
   const [messages, setMessages] = useState<{ messageId: string; answer: string; type: "sent" | "received" }[]>([]);
@@ -12,6 +13,7 @@ const HomeChat = () => {
   const [message, setMessage] = useState<string>(""); // Estado para a mensagem a ser enviada
   const [chatId, setChatId] = useState<string | null>(null); // Estado para armazenar o chatId
   const clientsRef = useRef<WebClient[]>([]); // Armazena múltiplas instâncias de WebClient
+  const messagesEndRef = useRef<HTMLDivElement | null>(null); // Referência para o fim da lista de mensagens
 
   const onMessageReceived = {
     onSuccess: (data: any, newChatId?: string) => {
@@ -87,19 +89,23 @@ const HomeChat = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Se o usuário pressionar Cmd/Ctrl + Enter, envia a mensagem
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
+
+  // Desabilitar o scroll da página inteira
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'; // Desabilita o scroll no body
+    return () => {
+      document.body.style.overflow = ''; // Restaura o scroll no body ao desmontar
+    };
+  }, []);
 
   return (
-    <div className="w-full min-h-screen flex flex-col bg-gray-900 text-white" style={{ padding: "0 50px" }}>
-      <WebSocketStatus status={status} />
-      <MessageList messages={messages} />
-      <ChatInput message={message} setMessage={setMessage} sendMessage={sendMessage} handleKeyPress={handleKeyPress} />
+    <div className="w-full h-screen flex flex-col bg-gray-900 text-white" style={{ padding: "0 0" }}>
+      {/* <WebSocketStatus status={status} /> */}
+      <div className="flex flex-col h-full overflow-y-auto mb-4 pb-20 px-10">
+        <ChatStatus chatId={chatId} /> 
+        <MessageList messages={messages} scrollRef={messagesEndRef} /> 
+      </div>
+      <ChatInput message={message} setMessage={setMessage} sendMessage={sendMessage}  />
     </div>
   );
 };
